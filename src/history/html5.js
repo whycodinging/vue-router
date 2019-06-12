@@ -59,6 +59,7 @@ export class HTML5History extends History {
     }, onAbort)
   }
 
+  // 确保了url的有效性
   ensureURL (push?: boolean) {
     if (getLocation(this.base) !== this.current.fullPath) {
       const current = cleanPath(this.base + this.current.fullPath)

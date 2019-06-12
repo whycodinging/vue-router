@@ -13,11 +13,13 @@ export function createRoute (
 ): Route {
   const stringifyQuery = router && router.options.stringifyQuery
 
+  // 深拷贝query
   let query: any = location.query || {}
   try {
     query = clone(query)
   } catch (e) {}
 
+  // 创建路由对象
   const route: Route = {
     name: location.name || (record && record.name),
     meta: (record && record.meta) || {},
@@ -26,14 +28,17 @@ export function createRoute (
     query,
     params: location.params || {},
     fullPath: getFullPath(location, stringifyQuery),
+    // 获得从根目录开始的包含当前路由片段的所有路由记录
     matched: record ? formatMatch(record) : []
   }
   if (redirectedFrom) {
     route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)
   }
+  // 路由对象不可修改
   return Object.freeze(route)
 }
 
+// 深拷贝
 function clone (value) {
   if (Array.isArray(value)) {
     return value.map(clone)
@@ -53,10 +58,14 @@ export const START = createRoute(null, {
   path: '/'
 })
 
+// 获得包含当前路由的所有嵌套路径片段的路由记录
+// 包含从根路由到当前路由的匹配记录，从上之下，根路由作为第一个
 function formatMatch (record: ?RouteRecord): Array<RouteRecord> {
   const res = []
   while (record) {
+    // res中添加路由记录
     res.unshift(record)
+    // 查看父级是否有片段符合 
     record = record.parent
   }
   return res

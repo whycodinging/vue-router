@@ -132,6 +132,7 @@ function pushHash (path) {
   if (supportsPushState) {
     pushState(getUrl(path))
   } else {
+    // 通过window.location实现跳转
     window.location.hash = path
   }
 }

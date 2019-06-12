@@ -16,27 +16,34 @@ export type Matcher = {
 export function createMatcher (
   routes: Array<RouteConfig>,
   router: VueRouter
-): Matcher {
+): Matcher {  
+  // 从创建的路由映射表中获取pathlist、pathMap、nameMap
   const { pathList, pathMap, nameMap } = createRouteMap(routes)
 
   function addRoutes (routes) {
+    // 创建好pathList、pathMap、nameMap
     createRouteMap(routes, pathList, pathMap, nameMap)
   }
 
+  // 路由匹配
   function match (
     raw: RawLocation,
     currentRoute?: Route,
     redirectedFrom?: Location
   ): Route {
+    // 对当前路由进行序列化，获取path、query、hash
     const location = normalizeLocation(raw, currentRoute, false, router)
     const { name } = location
 
     if (name) {
+      // 如果是命名路由，从命名路由中取出对应信息
       const record = nameMap[name]
       if (process.env.NODE_ENV !== 'production') {
         warn(record, `Route with name '${name}' does not exist`)
       }
+      // 没找到对应匹配信息
       if (!record) return _createRoute(null, location)
+
       const paramNames = record.regex.keys
         .filter(key => !key.optional)
         .map(key => key.name)
@@ -45,8 +52,11 @@ export function createMatcher (
         location.params = {}
       }
 
+      // 针对存在params时，参数params处理
+      // 补全localtion.params
       if (currentRoute && typeof currentRoute.params === 'object') {
         for (const key in currentRoute.params) {
+          // 当前路由存在params并且不存在于location params中,则补充
           if (!(key in location.params) && paramNames.indexOf(key) > -1) {
             location.params[key] = currentRoute.params[key]
           }
@@ -56,16 +66,22 @@ export function createMatcher (
       location.path = fillParams(record.path, location.params, `named route "${name}"`)
       return _createRoute(record, location, redirectedFrom)
     } else if (location.path) {
+
+      // 非命名路由处理
       location.params = {}
       for (let i = 0; i < pathList.length; i++) {
+
         const path = pathList[i]
+        // 从pathmap中取出对应的路由信息
         const record = pathMap[path]
         if (matchRoute(record.regex, location.path, location.params)) {
           return _createRoute(record, location, redirectedFrom)
         }
       }
     }
+
     // no match
+    // 没有匹配的路由
     return _createRoute(null, location)
   }
 
@@ -150,6 +166,7 @@ export function createMatcher (
     return _createRoute(null, location)
   }
 
+  // 根据条件创建不同的路由
   function _createRoute (
     record: ?RouteRecord,
     location: Location,
@@ -170,6 +187,7 @@ export function createMatcher (
   }
 }
 
+// 路由是否匹配
 function matchRoute (
   regex: RouteRegExp,
   path: string,

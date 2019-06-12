@@ -61,22 +61,41 @@ export class History {
     this.errorCbs.push(errorCb)
   }
 
+  // 路由跳转
   transitionTo (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+    // 获取匹配的路由信息
     const route = this.router.match(location, this.current)
+    // 确定切换路由
     this.confirmTransition(route, () => {
+
+      // 更新当前路由信息
+      // 执行回调cb
+      // afterHooks中钩子函数存在，则调用
       this.updateRoute(route)
+
+      // 只针对hsah模式
+      // 创建hashchange监听
       onComplete && onComplete(route)
+
+      // 更新路由
+      // push和replace两种方式
+      // 取决于push值
       this.ensureURL()
 
       // fire ready cbs once
+      // 只执行一次ready回调
       if (!this.ready) {
         this.ready = true
         this.readyCbs.forEach(cb => { cb(route) })
       }
     }, err => {
+      // 错误处理
+      // hash模式时创建监听
       if (onAbort) {
         onAbort(err)
       }
+
+      // 错误时ready也置为true
       if (err && !this.ready) {
         this.ready = true
         this.readyErrorCbs.forEach(cb => { cb(err) })
@@ -84,8 +103,11 @@ export class History {
     })
   }
 
+  // 确认跳转路由
   confirmTransition (route: Route, onComplete: Function, onAbort?: Function) {
     const current = this.current
+    // hash模式下存在
+    // 中断跳转路由函数
     const abort = err => {
       if (isError(err)) {
         if (this.errorCbs.length) {
@@ -97,6 +119,7 @@ export class History {
       }
       onAbort && onAbort(err)
     }
+    // 相同路由不做跳转
     if (
       isSameRoute(route, current) &&
       // in the case the route map has been dynamically appended to
@@ -106,31 +129,42 @@ export class History {
       return abort()
     }
 
+    // 获取可以复用的、需要渲染的、失活的组件信息
     const {
       updated,
       deactivated,
       activated
     } = resolveQueue(this.current.matched, route.matched)
 
+    // 守卫导航数组
     const queue: Array<?NavigationGuard> = [].concat(
       // in-component leave guards
+      // 失活的组件钩子
       extractLeaveGuards(deactivated),
       // global before hooks
+      // 全局的beforeHooks钩子
       this.router.beforeHooks,
       // in-component update hooks
+
+      // 当前路由改变，但是该组件被复用时调用
       extractUpdateHooks(updated),
       // in-config enter guards
+      // 需要渲染组件 enter 守卫钩子
       activated.map(m => m.beforeEnter),
       // async components
+      // 解析异步路由组件
       resolveAsyncComponents(activated)
     )
-
+    // 保存路由
     this.pending = route
+      // 执行守卫导航的quene
     const iterator = (hook: NavigationGuard, next) => {
       if (this.pending !== route) {
         return abort()
       }
       try {
+        // 执行钩子
+        // 只有执行钩子函数中的next，才会继续执行下一个钩子
         hook(route, current, (to: any) => {
           if (to === false || isError(to)) {
             // next(false) -> abort navigation, ensure current URL
@@ -183,9 +217,12 @@ export class History {
   }
 
   updateRoute (route: Route) {
+    // 更新当前路由信息
     const prev = this.current
     this.current = route
+    // 执行回调
     this.cb && this.cb(route)
+    // afterhooks存在则执行
     this.router.afterHooks.forEach(hook => {
       hook && hook(route, prev)
     })
@@ -212,8 +249,11 @@ function normalizeBase (base: ?string): string {
   return base.replace(/\/$/, '')
 }
 
+// 解析出需要可复用组件、更新渲染的组件，和失活组件
 function resolveQueue (
+  //  从根目录开始所有符合当前路径片段的路由集合
   current: Array<RouteRecord>,
+  //  从根目录开始所有符合跳转路径片段的路由集合
   next: Array<RouteRecord>
 ): {
   updated: Array<RouteRecord>,
@@ -222,14 +262,19 @@ function resolveQueue (
 } {
   let i
   const max = Math.max(current.length, next.length)
+  // 可能存在相同的父级路由，部分组件可以复用
   for (i = 0; i < max; i++) {
+    // 当前路由路径和跳转路由路径不同时跳出遍历
     if (current[i] !== next[i]) {
       break
     }
   }
   return {
+    // 在i之前组件都是父级组件，可以复用，无需更新
     updated: next.slice(0, i),
+    // 跳转路由对应的从i开始到之后的所有组件需要渲染
     activated: next.slice(i),
+    // 当前路由对应的从i开始到最后的所有组件开始无效
     deactivated: current.slice(i)
   }
 }
@@ -240,8 +285,11 @@ function extractGuards (
   bind: Function,
   reverse?: boolean
 ): Array<?Function> {
-  const guards = flatMapComponents(records, (def, instance, match, key) => {
-    const guard = extractGuard(def, name)
+    const guards = flatMapComponents(records, (def, instance, match, key) => {
+     
+      // 找出组件中的钩子函数
+      const guard = extractGuard(def, name)
+    // 为钩子函数添加上下文对象为组件自身
     if (guard) {
       return Array.isArray(guard)
         ? guard.map(guard => bind(guard, instance, match, key))
@@ -329,3 +377,16 @@ function poll (
     }, 16)
   }
 }
+
+// 导航被触发。
+// 在失活的组件里调用离开守卫。
+// 调用全局的 beforeEach 守卫。
+// 在重用的组件里调用 beforeRouteUpdate 守卫 (2.2+)。
+// 在路由配置里调用 beforeEnter。
+// 解析异步路由组件。
+// 在被激活的组件里调用 beforeRouteEnter。
+// 调用全局的 beforeResolve 守卫 (2.5+)。
+// 导航被确认。
+// 调用全局的 afterEach 钩子。
+// 触发 DOM 更新。
+// 用创建好的实例调用 beforeRouteEnter 守卫中传给 next 的回调函数。

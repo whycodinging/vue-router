@@ -9,7 +9,9 @@ const positionStore = Object.create(null)
 export function setupScroll () {
   // Fix for #1585 for Firefox
   // Fix for #2195 Add optional third attribute to workaround a bug in safari https://bugs.webkit.org/show_bug.cgi?id=182678
+  //  修改历史纪录但是不变更页面
   window.history.replaceState({ key: getStateKey() }, '', window.location.href.replace(window.location.origin, ''))
+  // 监听popstate事件的发生
   window.addEventListener('popstate', e => {
     saveScrollPosition()
     if (e.state && e.state.key) {

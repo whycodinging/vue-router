@@ -3,6 +3,7 @@
 import { inBrowser } from './dom'
 import { saveScrollPosition } from './scroll'
 
+// 必须在浏览器中才执行以下操作
 export const supportsPushState = inBrowser && (function () {
   const ua = window.navigator.userAgent
 
@@ -14,7 +15,8 @@ export const supportsPushState = inBrowser && (function () {
   ) {
     return false
   }
-
+  
+  // 返回包含pushState的history
   return window.history && 'pushState' in window.history
 })()
 
@@ -29,7 +31,7 @@ function genKey (): string {
   return Time.now().toFixed(3)
 }
 
-export function getStateKey () {
+export function getStateKey () {        
   return _key
 }
 

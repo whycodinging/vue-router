@@ -32,6 +32,7 @@ export default class VueRouter {
   resolveHooks: Array<?NavigationGuard>;
   afterHooks: Array<?AfterNavigationHook>;
 
+  // 创建一个路由匹配对象，并采用不同的路由方式
   constructor (options: RouterOptions = {}) {
     this.app = null
     this.apps = []
@@ -41,16 +42,21 @@ export default class VueRouter {
     this.afterHooks = []
     this.matcher = createMatcher(options.routes || [], this)
 
+    // mode存在3种，hash、history、abstract
     let mode = options.mode || 'hash'
+    // 判断当前环境是否支持Html5 History
     this.fallback = mode === 'history' && !supportsPushState && options.fallback !== false
+    // 不支持Html5 History，降级为hash模式
     if (this.fallback) {
       mode = 'hash'
     }
+    // 当前环境不是浏览器环境，强制为abstract模式（weex)
     if (!inBrowser) {
       mode = 'abstract'
     }
     this.mode = mode
-
+    
+    // 根据mode匹配对应的路由模式进行初始化工作
     switch (mode) {
       case 'history':
         this.history = new HTML5History(this, options.base)
@@ -87,8 +93,11 @@ export default class VueRouter {
       `before creating root instance.`
     )
 
+    // 保存组件实例
     this.apps.push(app)
 
+    // 监听'hook:destroyed'，销毁组件实例
+    // 只触发一次，触发后销毁
     // set up app destroyed handler
     // https://github.com/vuejs/vue-router/issues/2639
     app.$once('hook:destroyed', () => {
@@ -102,20 +111,30 @@ export default class VueRouter {
 
     // main app previously initialized
     // return as we don't need to set up new history listener
+    // 实例已经存在，则不需要再次创建一个history监听器
     if (this.app) {
       return
     }
 
     this.app = app
 
+    // 赋值当前路由模式
     const history = this.history
 
+    // history路由模式
     if (history instanceof HTML5History) {
+      // 路由跳转
       history.transitionTo(history.getCurrentLocation())
+
+    // hash模式
     } else if (history instanceof HashHistory) {
+
+      // 创建hash监听
       const setupHashListener = () => {
         history.setupListeners()
       }
+
+      // 路由跳转
       history.transitionTo(
         history.getCurrentLocation(),
         setupHashListener,
@@ -123,6 +142,8 @@ export default class VueRouter {
       )
     }
 
+    // 对组件的_route属性进行赋值
+    // 该回调在transitonTo中回调
     history.listen(route => {
       this.apps.forEach((app) => {
         app._route = route

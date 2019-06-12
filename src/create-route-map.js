@@ -20,13 +20,15 @@ export function createRouteMap (
   const pathMap: Dictionary<RouteRecord> = oldPathMap || Object.create(null)
   // $flow-disable-line
   const nameMap: Dictionary<RouteRecord> = oldNameMap || Object.create(null)
-
+  
+  // 遍历路由配置，为每个配置生成路由记录
   routes.forEach(route => {
     addRouteRecord(pathList, pathMap, nameMap, route)
   })
 
   // ensure wildcard routes are always at the end
   for (let i = 0, l = pathList.length; i < l; i++) {
+    // 将通配的*路由至于pathlist最后
     if (pathList[i] === '*') {
       pathList.push(pathList.splice(i, 1)[0])
       l--
@@ -41,6 +43,7 @@ export function createRouteMap (
   }
 }
 
+// 添加路由记录
 function addRouteRecord (
   pathList: Array<string>,
   pathMap: Dictionary<RouteRecord>,
@@ -49,6 +52,7 @@ function addRouteRecord (
   parent?: RouteRecord,
   matchAs?: string
 ) {
+  // 获取该路由配置的属性path和name
   const { path, name } = route
   if (process.env.NODE_ENV !== 'production') {
     assert(path != null, `"path" is required in a route configuration.`)
@@ -60,6 +64,10 @@ function addRouteRecord (
   }
 
   const pathToRegexpOptions: PathToRegexpOptions = route.pathToRegexpOptions || {}
+  // 对path进行格式化
+  // 1. 确保不以’/‘结尾
+  // 2. 以'/'开头的路径直接使用（不会是子路由）
+  // 3.存在父级需要拼接父级的path
   const normalizedPath = normalizePath(
     path,
     parent,
@@ -88,6 +96,8 @@ function addRouteRecord (
         : { default: route.props }
   }
 
+
+  // 存在子路由，递归处理子路由
   if (route.children) {
     // Warn if route is named, does not redirect and has a default child route.
     // If users navigate to this route by name, the default child will
@@ -104,6 +114,7 @@ function addRouteRecord (
         )
       }
     }
+    // 递归路由配置的 children 属性，添加子路由记录
     route.children.forEach(child => {
       const childMatchAs = matchAs
         ? cleanPath(`${matchAs}/${child.path}`)
@@ -112,6 +123,7 @@ function addRouteRecord (
     })
   }
 
+  // 路由存在别名时 为路由别名也添加路由信息
   if (route.alias !== undefined) {
     const aliases = Array.isArray(route.alias)
       ? route.alias
@@ -133,11 +145,13 @@ function addRouteRecord (
     })
   }
 
+  // 如果路由映射表中不存在以path作为key的路由信息，则添加这条路由信息，注意相同path，只有第一个生效
   if (!pathMap[record.path]) {
     pathList.push(record.path)
     pathMap[record.path] = record
   }
 
+  // 命名路由添加信息，注意相同name，只有第一个生效
   if (name) {
     if (!nameMap[name]) {
       nameMap[name] = record
@@ -163,9 +177,14 @@ function compileRouteRegex (path: string, pathToRegexpOptions: PathToRegexpOptio
   return regex
 }
 
+// 格式化path
 function normalizePath (path: string, parent?: RouteRecord, strict?: boolean): string {
+  // 将结尾有'/'替换掉
   if (!strict) path = path.replace(/\/$/, '')
+  // 第一个字符是'/'直接返回path
   if (path[0] === '/') return path
+  // 没有父级信息的直接返回
   if (parent == null) return path
+  // 拼接存在父级的路由path，并处理可能出现'//'情况，替换为单个'/'
   return cleanPath(`${parent.path}/${path}`)
 }
