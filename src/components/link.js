@@ -31,7 +31,10 @@ export default {
   render (h: Function) {
     const router = this.$router
     const current = this.$route
+    // 解析将要跳转的路由，获取其location，route，href
     const { location, route, href } = router.resolve(this.to, current, this.append)
+    console.log('location:', location)
+    console.log('current:', current)
 
     const classes = {}
     const globalActiveClass = router.options.linkActiveClass
@@ -49,15 +52,21 @@ export default {
     const exactActiveClass = this.exactActiveClass == null
       ? exactActiveClassFallback
       : this.exactActiveClass
+
     const compareTarget = location.path
       ? createRoute(null, location, null, router)
       : route
 
+    console.log('compareTarget:', compareTarget)
+    console.log('classes:', classes)
+    // 相同路由 激活exactActiveClass的样式
     classes[exactActiveClass] = isSameRoute(current, compareTarget)
+    // 根据设置的exact激活activeClass
     classes[activeClass] = this.exact
       ? classes[exactActiveClass]
       : isIncludedRoute(current, compareTarget)
 
+    // 根据传入的renplace判断是replace还是push方式
     const handler = e => {
       if (guardEvent(e)) {
         if (this.replace) {
@@ -68,6 +77,7 @@ export default {
       }
     }
 
+    // handler事件赋值给click事件
     const on = { click: guardEvent }
     if (Array.isArray(this.event)) {
       this.event.forEach(e => { on[e] = handler })
@@ -78,7 +88,7 @@ export default {
     const data: any = {
       class: classes
     }
-
+    // 当设置tag的值时，根据用户传入的tag生成外层标签，并将activeClass，exactActiveClass加在外围标签的class上
     if (this.tag === 'a') {
       data.on = on
       data.attrs = { href }

@@ -9,7 +9,7 @@ export function install (Vue) {
   // install 只调用一次
   if (install.installed && _Vue === Vue) return
   install.installed = true
-  
+
   // 将Vue赋值给全局变量_vue
   _Vue = Vue
 
@@ -42,9 +42,10 @@ export function install (Vue) {
         // 当前没有router信息，找上一级存在根路由的父级，=》用于router-view层级判断
         this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
       }
+      // 会去执行router-riew中render函数中定义的registerRouteInstance（）
       registerInstance(this, this)
     },
-    
+
     // 注销时采用registerInstance()？
     destroyed () {
       registerInstance(this)

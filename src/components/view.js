@@ -3,19 +3,25 @@ import { extend } from '../util/misc'
 
 export default {
   name: 'RouterView',
-  functional: true,
+  functional: true, // 功能组件
   props: {
     name: {
       type: String,
       default: 'default'
     }
   },
+  // props提供·所有prop对象
+  // children对应VNode子节点的数组
+  // parent对应对父组件的引用
+  // data传递给组件的数据对象，作为createElement的第二个参数传入组件
   render (_, { props, children, parent, data }) {
     // used by devtools to display a router-view badge
+    // 标记为 routerview
     data.routerView = true
 
     // directly use parent context's createElement() function
     // so that components rendered by router-view can resolve named slots
+    // 获取父组件的$createElement方法
     const h = parent.$createElement
     const name = props.name
     const route = parent.$route
@@ -25,6 +31,8 @@ export default {
     // has been toggled inactive but kept-alive.
     let depth = 0
     let inactive = false
+    // parent._routerRoot表示根Vue的实例
+    // 父级存在父级，嵌套路由
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode && parent.$vnode.data
       if (vnodeData) {
@@ -35,8 +43,10 @@ export default {
           inactive = true
         }
       }
+      // 将父级的父级赋给父级
       parent = parent.$parent
     }
+    // 确定嵌套的深度
     data.routerViewDepth = depth
 
     // render previous view if the tree is inactive and kept-alive
@@ -44,6 +54,7 @@ export default {
       return h(cache[name], data, children)
     }
 
+    // 获取当前组件的路由记录
     const matched = route.matched[depth]
     // render empty node if no matched route
     if (!matched) {
@@ -56,6 +67,8 @@ export default {
     // attach instance registration hook
     // this will be called in the instance's injected lifecycle hooks
     data.registerRouteInstance = (vm, val) => {
+      console.log('vm:', vm)
+      console.log('val:', val)
       // val could be undefined for unregistration
       const current = matched.instances[name]
       if (
@@ -68,7 +81,7 @@ export default {
 
     // also register instance in prepatch hook
     // in case the same component instance is reused across different routes
-    ;(data.hook || (data.hook = {})).prepatch = (_, vnode) => {
+    (data.hook || (data.hook = {})).prepatch = (_, vnode) => {
       matched.instances[name] = vnode.componentInstance
     }
 
